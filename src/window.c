@@ -47,7 +47,7 @@ void ResizeFocusedWindow(int height, int width, int x, int y) {
     CFRelease(focusedApp);
 }
 
-void Release() {
+void release() {
     if (!systemWideElement) {
         return;
     }

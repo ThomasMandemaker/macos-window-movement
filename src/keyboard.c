@@ -4,18 +4,14 @@
 #include <stdint.h>
 #include <stdio.h>
 
-EventCallback eventCallback = NULL;
-
 void init_listener(EventCallback callBack) {
     if (!callBack) {
         printf("No callback given, exiting...");
         return;
     }
 
-    eventCallback = callBack;
-
     CGEventMask eventMask = CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventFlagsChanged);
-    CFMachPortRef eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0, eventMask, CGEventCallback, NULL);
+    CFMachPortRef eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0, eventMask, CGEventCallback, callBack);
     if (!eventTap) {
         printf("Failed to create event tap");
         return;
@@ -23,19 +19,19 @@ void init_listener(EventCallback callBack) {
 
 
     CFRunLoopSourceRef loop = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
-    CFRunLoopAddSource(CFRunLoopGetCurrent(),loop, kCFRunLoopCommonModes);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), loop, kCFRunLoopCommonModes);
     CGEventTapEnable(eventTap, true);
     CFRunLoopRun();
 }
 
 CGEventRef CGEventCallback(CGEventTapProxy  proxy,
-  CGEventType type, CGEventRef event, void * __nullable userInfo) {
+  CGEventType type, CGEventRef event, void * __nullable callback) {
     CGEventFlags flags = CGEventGetFlags(event);
-    if (!(flags & kCGEventFlagMaskAlternate) | !eventCallback) {
+    if (!(flags & kCGEventFlagMaskAlternate) || !callback) {
         return event;
     }
 
     int64_t key = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
-    eventCallback(key);
+    ((EventCallback)callback)(key);
     return event;
 }
