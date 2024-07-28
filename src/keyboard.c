@@ -15,23 +15,23 @@ void init_listener(EventCallback callBack) {
     eventCallback = callBack;
 
     CGEventMask eventMask = CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventFlagsChanged);
-    CFMachPortRef r = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0, eventMask, CGEventCallback, NULL);
-    if (!r) {
-        printf("Failed");
+    CFMachPortRef eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0, eventMask, CGEventCallback, NULL);
+    if (!eventTap) {
+        printf("Failed to create event tap");
         return;
     }
 
 
-    CFRunLoopSourceRef loop = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, r, 0);
+    CFRunLoopSourceRef loop = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
     CFRunLoopAddSource(CFRunLoopGetCurrent(),loop, kCFRunLoopCommonModes);
-    CGEventTapEnable(r, true);
+    CGEventTapEnable(eventTap, true);
     CFRunLoopRun();
 }
 
 CGEventRef CGEventCallback(CGEventTapProxy  proxy,
   CGEventType type, CGEventRef event, void * __nullable userInfo) {
     CGEventFlags flags = CGEventGetFlags(event);
-    if (!!(flags & kCGEventFlagMaskAlternate)) {
+    if (!(flags & kCGEventFlagMaskAlternate) | !eventCallback) {
         return event;
     }
 
