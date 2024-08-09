@@ -2,11 +2,13 @@
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreGraphics/CoreGraphics.h>
+#include <stdio.h>
 
 AXUIElementRef systemWideElement = NULL;
 CFArrayRef windows = NULL;
 
-void ResizeFocusedWindow(int height, int width, int x, int y) {
+void ResizeFocusedWindow(CGSize size, CGPoint point) {    
+    // Not sure why this is necessary, but kAXFocusedApplicationAttribute returns -25204 without it.
     if (!windows) {
         windows = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
     }
@@ -29,18 +31,11 @@ void ResizeFocusedWindow(int height, int width, int x, int y) {
         printf("Error copying focused window, err: %d\n", err);
         return;
     }
-    
-    CGSize size;
-    CGPoint point;
-    size.width = width;
-    size.height = height;
-    point.x = x;
-    point.y = y;
 
-    AXValueRef temp = AXValueCreate( kAXValueCGSizeType, &size );
-    AXUIElementSetAttributeValue(window, kAXSizeAttribute, temp );
-    temp = AXValueCreate( kAXValueCGPointType, &point );
+    AXValueRef temp = AXValueCreate( kAXValueCGPointType, &point );
     AXUIElementSetAttributeValue(window, kAXPositionAttribute, temp );
+    temp = AXValueCreate( kAXValueCGSizeType, &size);
+    AXUIElementSetAttributeValue(window, kAXSizeAttribute, temp );
 
     CFRelease(temp);
     CFRelease(window);
