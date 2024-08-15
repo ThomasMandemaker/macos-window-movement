@@ -1,7 +1,7 @@
 #include "direction.h"
 #include <stddef.h>
 
-enum Direction SwapDirection(enum Direction dir) {
+Direction SwapDirection(Direction dir) {
     switch (dir) {
         case UP: return DOWN;
         case RIGHT: return LEFT;
@@ -11,7 +11,7 @@ enum Direction SwapDirection(enum Direction dir) {
     }
 }
 
-enum Direction PerpendicularDirection(enum Direction dir) {
+Direction PerpendicularDirection(Direction dir) {
     switch (dir) {
         case UP: return RIGHT;
         case RIGHT: return DOWN;

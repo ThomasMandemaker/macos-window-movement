@@ -5,27 +5,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Panel* currentPanel = NULL;
-Panel** panelList = NULL;
-int panelSize = 0;
-
 void Print(char* text) {
     FILE* a = fopen("/Users/thomasmandemaker/Desktop/Projects/tile-manager/im-having-a-fucking-keystroke.log", "a");
     fprintf(a, text, "");
     fflush(a);
 }
 
-void PrintPanelProperties(Panel* panel) {
+void PrintPanelProperties(char* prefix, Panel* panel) {
     FILE* a = fopen("/Users/thomasmandemaker/Desktop/Projects/tile-manager/im-having-a-fucking-keystroke.log", "a");
-    fprintf(a, "\n\nIndex is: %d\n", panel->index);
-    fprintf(a, "\nHeight is: %f\n", panel->size.height);
-    fprintf(a, "\nWidth is: %f\n", panel->size.width);
-    fprintf(a, "\nX is: %f\n", panel->point.x);
-    fprintf(a, "\nY is: %f\n", panel->point.y);
+    fprintf(a, "\n%s Height is: %f\n", prefix, panel->size.height);
+    fprintf(a, "\n%s Width is: %f\n", prefix, panel->size.width);
+    fprintf(a, "\n%s X is: %f\n", prefix, panel->point.x);
+    fprintf(a, "\n%s Y is: %f\n", prefix, panel->point.y);
     fflush(a);
 }
 
-int GetCompAxis(Panel* panel, enum Direction dir) {
+int GetCompAxis(Panel* panel, Direction dir) {
     assert(panel != NULL);
 
     switch (dir) {
@@ -40,22 +35,22 @@ int GetCompAxis(Panel* panel, enum Direction dir) {
     }
 }
 
-Panel* CreatePanel(CGSize size, CGPoint point) {
+Panel* CreatePanel(Layout* layout, CGSize size, CGPoint point) {
+    assert(layout);
     Panel* panel = (Panel*)malloc(sizeof(Panel));
     panel->size = size;
     panel->point = point;
-    panel->index = panelSize;
     panel->up = NULL;
     panel->right = NULL;
     panel->down = NULL;
     panel->left = NULL;
-    panelList[panelSize] = panel;
-    panelSize = panelSize + 1;
+    panel->parent = layout;
+    layout->panelList[layout->panelSize++] = panel;
     return panel;
 }
 
 
-Panel* PanelInDirection(Panel* panel, enum Direction dir) {
+Panel* PanelInDirection(Panel* panel, Direction dir) {
     switch (dir) {
         case UP: return panel->up;
         case RIGHT: return panel->right;
@@ -65,7 +60,7 @@ Panel* PanelInDirection(Panel* panel, enum Direction dir) {
     }
 }
 
-void SetPanelInDirection(Panel* target, Panel* value, enum Direction dir) {
+void SetPanelInDirection(Panel* target, Panel* value, Direction dir) {
     switch (dir) {
         case UP: target->up = value;
                  break;
@@ -79,19 +74,30 @@ void SetPanelInDirection(Panel* target, Panel* value, enum Direction dir) {
     }
 }
 
-Panel* InitLayout(CGSize size, CGPoint point) {
-    if (!panelList) {
-        panelList = (Panel**)malloc(sizeof(Panel*)*20);
-    }
+Layout* InitLayout(CGSize size, CGPoint point) {
+    Layout* layout = (Layout*)malloc(sizeof(Layout));
+    layout->panelList = (Panel**)malloc(sizeof(Panel*)*20);
+    layout->panelSize = 0;
+    layout->currentPanel = CreatePanel(layout, size, point);
 
-    if (!currentPanel) {
-        currentPanel = CreatePanel(size, point);
-    }
-
-    return currentPanel;
+    return layout;
 }
 
-Panel* FindClosestPanel(int compAxis, Panel* nextPanel, Panel* closestPanel, enum Direction dir) {
+
+void DestroyLayout(Layout* layout) {
+    if (!layout || !layout->panelList) {
+        return;
+    }
+
+
+    for (int i = 0; i < layout->panelSize; i++) {
+        free(layout->panelList[i]);
+    }
+
+    free(layout);
+}
+
+Panel* FindClosestPanel(int compAxis, Panel* nextPanel, Panel* closestPanel, Direction dir) {
         if (!nextPanel) {
             return closestPanel; // Means we're at the bottom
         }
@@ -123,32 +129,32 @@ Panel* FindClosestPanel(int compAxis, Panel* nextPanel, Panel* closestPanel, enu
         return FindClosestPanel(compAxis, nextPanel, closestPanel, dir);
 }
 
-void SwapPanels(Panel* panel, Panel* p, enum Direction dir) {
+void SwapPanels(Panel* panel, Panel* p, Direction dir) {
     Panel* pDir = PanelInDirection(p, dir);
 
-    if (!pDir || pDir->index != panel->index) {
+    if (!pDir || pDir != panel) {
         return;
     }
 
     int compAxis = GetCompAxis(p, dir);
 
     Panel* pDirection = FindClosestPanel(compAxis, panel, panel, PerpendicularDirection(dir));
-    if (!pDirection || pDirection->index == panel->index) {
+    if (!pDirection || pDirection == panel) {
         pDirection = FindClosestPanel(compAxis, panel, panel, SwapDirection(PerpendicularDirection(dir)));
     }
 
-    if ((!pDirection || pDirection->index == panel->index) && PanelInDirection(panel, dir)) {
+    if ((!pDirection || pDirection == panel) && PanelInDirection(panel, dir)) {
         pDirection = PanelInDirection(panel, dir);
     }
 
-    if (!pDirection || pDirection->index == panel->index) {
+    if (!pDirection || pDirection == panel) {
         pDirection = NULL;
     }
 
     SetPanelInDirection(p, pDirection, dir);
 }
 
-void RemapCloserPanel(Panel* panel, Panel* panelToSplit, enum Direction dir, enum Direction dir2) {
+void RemapCloserPanel(Panel* panel, Panel* panelToSplit, Direction dir, Direction dir2) {
     int panelCompAxis =  GetCompAxis(panel, dir);
 
     Panel* closestPanel = FindClosestPanel(panelCompAxis, PanelInDirection(panelToSplit, dir), PanelInDirection(panelToSplit, dir), dir2);
@@ -167,8 +173,14 @@ void RemapCloserPanel(Panel* panel, Panel* panelToSplit, enum Direction dir, enu
     }
 }
 
-void SplitVertical(Panel* panelToSplit) {
-    Panel* newPanel = CreatePanel(
+void SplitVertical(Layout* layout, Panel* panelToSplit) {
+    assert(layout && panelToSplit);
+
+    if (panelToSplit->parent != layout) {
+        return;
+    }
+
+    Panel* newPanel = CreatePanel(layout,
             CGSizeMake(panelToSplit->size.width, panelToSplit->size.height/2),
             CGPointMake(panelToSplit->point.x, panelToSplit->point.y + panelToSplit->size.height/2));
 
@@ -191,8 +203,13 @@ void SplitVertical(Panel* panelToSplit) {
     RemapCloserPanel(newPanel, panelToSplit, RIGHT, DOWN);
 }
 
-void SplitHorizontal(Panel* panelToSplit) {
-    Panel* newPanel = CreatePanel(
+void SplitHorizontal(Layout* layout, Panel* panelToSplit) {
+    assert(layout && panelToSplit);
+
+    if (panelToSplit->parent != layout) {
+        return;
+    }
+    Panel* newPanel = CreatePanel(layout,
             CGSizeMake(panelToSplit->size.width/2, panelToSplit->size.height),
             CGPointMake(panelToSplit->point.x + panelToSplit->size.width/2, panelToSplit->point.y));
     panelToSplit->size.width = newPanel->size.width;
@@ -214,53 +231,48 @@ void SplitHorizontal(Panel* panelToSplit) {
     RemapCloserPanel(newPanel, panelToSplit, DOWN, RIGHT);
 }
 
-void FreeAll() {
-    for (int i = 0; i < panelSize; i++) {
-        free(panelList[i]);
-    }
+void RemovePanel(Layout* layout, Panel* panelToDelete) {
+    assert(layout && panelToDelete);
 
-    free(panelList);
-}
-
-
-void RemovePanel(Panel* panel) {
-    if (!panel) {
+    if (panelToDelete->parent != layout || layout->panelSize <= 0) {
         return;
     }
 
-    for (int i = 0; i < panelSize; i++) {
-        if (i == panel->index) {
+    int index = -1;
+    for (int i = 0; i < layout->panelSize; i++) {
+        Panel* panel = layout->panelList[i];
+        if (panel == panelToDelete) {
+            index = i;
             continue;
         }
 
-        Panel* p = panelList[i];
-        
-        SwapPanels(panel, p, UP);
-        SwapPanels(panel, p, RIGHT);
-        SwapPanels(panel, p, DOWN);
-        SwapPanels(panel, p, LEFT);
+        SwapPanels(panelToDelete, panel, UP);
+        SwapPanels(panelToDelete, panel, RIGHT);
+        SwapPanels(panelToDelete, panel, DOWN);
+        SwapPanels(panelToDelete, panel, LEFT);
     }
 
-    int index = panel->index;
+    assert(index != -1);
 
-    free(panelList[index]);
+    free(panelToDelete);
 
-    if (index != panelSize) {
-        Panel* pan = panelList[panelSize-1];
-        pan->index = index;
-        panelList[index] = pan;
+    layout->panelSize--;
+    if (index == layout->panelSize) {
+        return;
     }
 
-    panelSize = panelSize-1;
+    Panel* panel = layout->panelList[layout->panelSize];
+    layout->panelList[index] = panel;
+
 }
 
-Panel* NextPanel(enum Direction dir) {
-    Panel* nextPanel = PanelInDirection(currentPanel, dir);
+Panel* NextPanel(Layout* layout, Direction dir) {
+    Panel* nextPanel = PanelInDirection(layout->currentPanel, dir);
     
     if (nextPanel == NULL) {
         return NULL;
     }
 
-    currentPanel = nextPanel;
-    return currentPanel;
+    layout->currentPanel = nextPanel;
+    return nextPanel;
 }

@@ -6,7 +6,6 @@
 
 
 void ResizeFocusedWindow(CGSize size, CGPoint point);
-//void ResizeFocusedWindow(int height, int width, int x, int y);
 void release();
 
 #endif // WINDOW_H

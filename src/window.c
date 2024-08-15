@@ -4,8 +4,8 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <stdio.h>
 
-AXUIElementRef systemWideElement = NULL;
-CFArrayRef windows = NULL;
+AXUIElementRef systemWideElement;
+CFArrayRef windows;
 
 void ResizeFocusedWindow(CGSize size, CGPoint point) {    
     // Not sure why this is necessary, but kAXFocusedApplicationAttribute returns -25204 without it.

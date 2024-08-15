@@ -6,24 +6,31 @@
 #include "direction.h"
 
 typedef struct Panel Panel;
+typedef struct Layout Layout;
 
 struct Panel {
     CGSize size;
     CGPoint point;
-    CGPoint center;
-    int index;
+    Layout* parent;
     Panel* up;
     Panel* right;
     Panel* down;
     Panel* left;
 };
 
-void FreeAll();
-void RemovePanel(Panel* panel);
-Panel* InitLayout(CGSize size, CGPoint point);
-void SplitVertical(Panel* panelToSplit);
-void SplitHorizontal(Panel* panelToSplit);
-Panel* NextPanel(enum Direction dir);
+struct Layout{
+    Panel** panelList;
+    int panelSize;
+    Panel* currentPanel;
+};
+
+Layout* InitLayout(CGSize size, CGPoint point);
+void DestroyLayout(Layout* layout);
+void SplitVertical(Layout* layout, Panel* panelToSplit);
+void SplitHorizontal(Layout* layout, Panel* panelToSplit);
+Panel* NextPanel(Layout* layout, Direction dir);
+void RemovePanel(Layout* layout, Panel* panel);
+void PrintPanelProperties(char* prefix, Panel* panel);
 
 #endif // LAYOUT_H
 

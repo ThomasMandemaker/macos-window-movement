@@ -1,14 +1,14 @@
 #ifndef DIRECTION_H
 #define DIRECTION_H
 
-enum Direction {
+typedef enum{
     UP = 126,
     RIGHT = 124,
     DOWN = 125,
     LEFT = 123
-};
+} Direction ;
 
-enum Direction SwapDirection(enum Direction dir);
-enum Direction PerpendicularDirection(enum Direction dir);
+Direction SwapDirection(Direction dir);
+Direction PerpendicularDirection(Direction dir);
 
 #endif // DIRECTION_H

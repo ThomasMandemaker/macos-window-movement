@@ -6,22 +6,24 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "keyboard.h"
+#include "config.h"
 #include "layout.h"
 #include "window.h"
 
 size_t mainDisplayHeight;
 size_t mainDisplayWidth;
+Layout* layout = NULL;
 
 
 void callback(int64_t key) {
     if (key == 12) {
         ResizeFocusedWindow(CGSizeMake(mainDisplayWidth, mainDisplayHeight), CGPointMake(0, 0)); // Reset to fullscreen
         release();
-        FreeAll();
+        DestroyLayout(layout);
         exit(0);
     }
 
-    Panel* nextPanel = NextPanel(key);
+    Panel* nextPanel = NextPanel(layout, key);
 
     if (nextPanel == NULL) {
         return;
@@ -37,18 +39,13 @@ int main() {
         return -1;
     }
 
-    
     mainDisplayHeight = CGDisplayPixelsHigh(CGMainDisplayID());
     mainDisplayWidth = CGDisplayPixelsWide(CGMainDisplayID());
-    Panel* originalPanel = InitLayout(CGSizeMake(mainDisplayWidth, mainDisplayHeight), CGPointMake(0, 0));
-    // Maybe we can save them using commands, rather than data?
-    SplitHorizontal(originalPanel);
-    SplitVertical(originalPanel);
-    SplitVertical(originalPanel);
-    SplitHorizontal(originalPanel);
-    SplitVertical(originalPanel->right);
-    RemovePanel(originalPanel->right->down);
-    RemovePanel(originalPanel->down);
+    layout = Load();
+
+    if (!layout) {
+        layout = InitLayout(CGSizeMake(mainDisplayWidth, mainDisplayHeight), CGPointMake(0, 0));
+    }
 
     init_listener(callback);
 
