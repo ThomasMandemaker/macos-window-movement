@@ -22,7 +22,7 @@ TARGET = $(MACOS_DIR)/schmove
 CFLAGS = -I$(INCLUDE_DIR)
 
 # Frameworks
-FRAMEWORKS = -framework CoreGraphics -framework ApplicationServices -framework CoreFoundation -framework Carbon
+FRAMEWORKS = -framework CoreGraphics -framework ApplicationServices -framework CoreFoundation -framework Carbon -framework Cocoa
 
 # Linker flags
 LDFLAGS = $(FRAMEWORKS)

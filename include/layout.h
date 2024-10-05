@@ -30,7 +30,6 @@ void SplitVertical(Layout* layout, Panel* panelToSplit);
 void SplitHorizontal(Layout* layout, Panel* panelToSplit);
 Panel* NextPanel(Layout* layout, Direction dir);
 void RemovePanel(Layout* layout, Panel* panel);
-void PrintPanelProperties(char* prefix, Panel* panel);
 
 #endif // LAYOUT_H
 

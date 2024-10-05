@@ -1,24 +1,12 @@
 #include "layout.h"
 #include "direction.h"
+#include <CoreFoundation/CoreFoundation.h>
 #include <assert.h>
+#include <math.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-void Print(char* text) {
-    FILE* a = fopen("/Users/thomasmandemaker/Desktop/Projects/tile-manager/im-having-a-fucking-keystroke.log", "a");
-    fprintf(a, text, "");
-    fflush(a);
-}
-
-void PrintPanelProperties(char* prefix, Panel* panel) {
-    FILE* a = fopen("/Users/thomasmandemaker/Desktop/Projects/tile-manager/im-having-a-fucking-keystroke.log", "a");
-    fprintf(a, "\n%s Height is: %f\n", prefix, panel->size.height);
-    fprintf(a, "\n%s Width is: %f\n", prefix, panel->size.width);
-    fprintf(a, "\n%s X is: %f\n", prefix, panel->point.x);
-    fprintf(a, "\n%s Y is: %f\n", prefix, panel->point.y);
-    fflush(a);
-}
 
 int GetCompAxis(Panel* panel, Direction dir) {
     assert(panel != NULL);
@@ -275,4 +263,49 @@ Panel* NextPanel(Layout* layout, Direction dir) {
 
     layout->currentPanel = nextPanel;
     return nextPanel;
+}
+
+void AdjustSize(Layout* layout, Panel* panel, CGSize size) {
+    assert(layout && panel);
+    assert(panel->parent == layout);
+
+    int dWidth = size.width - panel->size.width;
+    int dHeight = size.height - panel->size.height;
+
+    if (dWidth == 0 && dHeight == 0) {
+        return;
+    }
+
+    int count = 0;
+    Panel* p = panel->up;    
+
+    Panel** pList = (Panel**)malloc(sizeof(Panel*)*20);
+    int pCount = 0;
+
+    // Up
+    while (p && count < 100) {
+        p = p->right;
+        count++;
+        // If the end x of the panel is less than the point x, ignore it
+        if (p->point.x + p->size.width < panel->point.x) {
+            continue; // Can't actually continue REMOVE
+        }
+
+        // If the point x of the panel is more than the end x, ignore it
+        if (p->point.x > panel->point.x + panel->size.width) {
+            continue; // Can't actually continue REMOVE
+        }
+
+        // If the point is within, check if the y is against the current panel
+        if (floor(p->point.y + p->size.height) != floor(panel->point.y)) {
+            continue; // Can't actually continue REMOVE
+        }
+
+        pList[pCount++] = p;
+    }
+    
+    free(pList);
+    
+
+
 }
